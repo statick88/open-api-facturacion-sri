@@ -135,7 +135,10 @@ export class WebhooksService {
     );
 
     this.logger.log(`Webhook creado: ${dto.nombre} -> ${dto.url}`);
-    return this.mapToResponse(result.rows[0]);
+    const response = this.mapToResponse(result.rows[0]);
+    // FIX RED TEAM: Devolver secreto plano solo en creación — el usuario lo necesita para configurar HMAC
+    response.secretoPlano = secreto;
+    return response;
   }
 
   async update(id: string, dto: UpdateWebhookDto): Promise<WebhookResponseDto> {
@@ -215,7 +218,10 @@ export class WebhooksService {
     );
 
     this.logger.log(`Secreto regenerado para webhook: ${id}`);
-    return this.mapToResponse(result.rows[0]);
+    const response = this.mapToResponse(result.rows[0]);
+    // FIX RED TEAM: Devolver secreto plano solo en regeneración — el usuario lo necesita para configurar HMAC
+    response.secretoPlano = newSecret;
+    return response;
   }
 
   // Paginación completa para logs de webhooks

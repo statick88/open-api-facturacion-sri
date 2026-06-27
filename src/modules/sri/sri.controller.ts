@@ -328,7 +328,7 @@ export class SriController {
         'Endpoint de debug solo disponible para SUPERADMIN',
       );
     }
-    if (this.configService.get('NODE_ENV') === 'production') {
+    if (this.configService.get('nodeEnv') === 'production') {
       throw new ForbiddenException('Endpoint deshabilitado en producción');
     }
     await this.emisoresService.validateRucAccess(dto.emisor.ruc, user);

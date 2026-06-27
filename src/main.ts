@@ -32,6 +32,7 @@ async function bootstrap() {
   );
 
   // ===== SEGURIDAD: CORS restringido =====
+  const nodeEnvForSwagger = configService.get<string>('nodeEnv') || 'development';
   const allowedOriginsStr = configService.get<string>(
     'cors.allowedOrigins',
     'http://localhost:3000,http://localhost:3001',
@@ -71,8 +72,7 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter());
 
   // ===== SWAGGER — Open API Facturación SRI =====
-  // FIX RED TEAM: Solo habilitar Swagger en développement/test para evitar exposición de API docs en producción
-  const nodeEnvForSwagger = configService.get<string>('nodeEnv') || 'development';
+  // nodeEnvForSwagger is already declared above (before CORS)
   if (nodeEnvForSwagger !== 'production') {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('Open API Facturación SRI')

@@ -130,20 +130,36 @@ export class CertificateController {
     }
 
     // Limpiar datos del certificado en la tabla emisores
-    const cleanResult = await this.db.query(
-      `UPDATE emisores SET
-        certificado_p12 = NULL,
-        certificado_password = NULL,
-        certificado_password_encrypted = NULL,
-        certificado_valido_hasta = NULL,
-        certificado_sujeto = NULL,
-        certificado_nombre = NULL,
-        certificado_updated_at = NULL,
-        updated_at = NOW()
-       WHERE certificado_nombre = $1
-       RETURNING id, ruc`,
-      [fileName],
-    );
+    // FIX RED TEAM: Scope by tenant_id to prevent cross-tenant corruption
+    const cleanResult = user.rol === UserRole.SUPERADMIN
+      ? await this.db.query(
+          `UPDATE emisores SET
+            certificado_p12 = NULL,
+            certificado_password = NULL,
+            certificado_password_encrypted = NULL,
+            certificado_valido_hasta = NULL,
+            certificado_sujeto = NULL,
+            certificado_nombre = NULL,
+            certificado_updated_at = NULL,
+            updated_at = NOW()
+           WHERE certificado_nombre = $1
+           RETURNING id, ruc`,
+          [fileName],
+        )
+      : await this.db.query(
+          `UPDATE emisores SET
+            certificado_p12 = NULL,
+            certificado_password = NULL,
+            certificado_password_encrypted = NULL,
+            certificado_valido_hasta = NULL,
+            certificado_sujeto = NULL,
+            certificado_nombre = NULL,
+            certificado_updated_at = NULL,
+            updated_at = NOW()
+           WHERE certificado_nombre = $1 AND tenant_id = $2
+           RETURNING id, ruc`,
+          [fileName, user.tenantId],
+        );
 
     // Eliminar archivo físico
     this.certificateService.deleteCertificate(fileName);

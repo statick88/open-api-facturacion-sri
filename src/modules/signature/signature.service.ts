@@ -123,7 +123,7 @@ export class SignatureService {
     });
 
     if (!privateKey || !signingCert) {
-      throw new Error(
+      throw new BadRequestException(
         'No se pudo extraer la clave privada o el certificado del archivo P12',
       );
     }
@@ -282,7 +282,7 @@ export class SignatureService {
       }
 
       if (!existsSync(certPath)) {
-        throw new Error(
+        throw new BadRequestException(
           `El certificado ${certFile} no existe en el directorio de certificados`,
         );
       }

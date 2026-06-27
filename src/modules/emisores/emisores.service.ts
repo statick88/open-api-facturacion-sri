@@ -95,7 +95,8 @@ export class EmisoresService {
     }
 
     // Verificar que el emisor pertenece al tenant del usuario
-    if (emisor.tenantId && emisor.tenantId !== user.tenantId) {
+    // FIX RED TEAM: Si tenantId del emisor es NULL, denegar acceso a usuarios no-SUPERADMIN
+    if (!emisor.tenantId || emisor.tenantId !== user.tenantId) {
       throw new ForbiddenException('No tienes acceso a este emisor');
     }
 
@@ -137,9 +138,11 @@ export class EmisoresService {
       return emisor;
     }
 
+    // FIX RED TEAM: Denegar si el usuario no tiene tenantId O si el emisor no tiene tenantId
     if (
       !user.tenantId ||
-      (emisor.tenantId && emisor.tenantId !== user.tenantId)
+      !emisor.tenantId ||
+      emisor.tenantId !== user.tenantId
     ) {
       this.logger.warn(
         `IDOR blocked: user ${user.sub} (tenant ${user.tenantId}) tried to access emisor ${emisorId} (tenant ${emisor.tenantId})`,
@@ -169,9 +172,11 @@ export class EmisoresService {
       return emisor;
     }
 
+    // FIX RED TEAM: Denegar si el usuario no tiene tenantId O si el emisor no tiene tenantId
     if (
       !user.tenantId ||
-      (emisor.tenantId && emisor.tenantId !== user.tenantId)
+      !emisor.tenantId ||
+      emisor.tenantId !== user.tenantId
     ) {
       this.logger.warn(
         `IDOR blocked: user ${user.sub} (tenant ${user.tenantId}) tried to access RUC ${ruc} (tenant ${emisor.tenantId})`,
@@ -413,6 +418,7 @@ export class EmisoresService {
       `UPDATE emisores SET
         certificado_p12 = NULL,
         certificado_password = NULL,
+        certificado_password_encrypted = NULL,
         certificado_valido_hasta = NULL,
         certificado_sujeto = NULL,
         certificado_updated_at = NULL,
