@@ -336,12 +336,25 @@ export class WebhooksService {
       url: row.url as string,
       eventos: row.eventos as string[],
       emisorId: row.emisor_id as string,
-      secreto: row.secreto as string,
+      // FIX RED TEAM: NUNCA exponer el secreto completo en respuestas API
+      // Solo mostrar los primeros 8 y últimos 4 caracteres para identificación
+      secreto: this.maskSecret(row.secreto as string),
       activo: row.activo as boolean,
       reintentosMax: row.reintentos_max as number,
       createdAt: (row.created_at as Date)?.toISOString(),
       updatedAt: (row.updated_at as Date)?.toISOString(),
     };
+  }
+
+  /**
+   * Enmascara un secreto para mostrar solo identificación parcial.
+   * Ejemplo: "whsec_abc123def456ghi789" → "whsec_a***i789"
+   */
+  private maskSecret(secret: string): string {
+    if (!secret || secret.length < 12) return '***';
+    const prefix = secret.substring(0, 8);
+    const suffix = secret.substring(secret.length - 4);
+    return `${prefix}${'*'.repeat(Math.min(8, secret.length - 12))}${suffix}`;
   }
 
   private mapLogToResponse(row: Record<string, unknown>): WebhookLogResponseDto {

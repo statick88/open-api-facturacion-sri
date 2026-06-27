@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import * as forge from 'node-forge';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import * as QRCode from 'qrcode';
@@ -263,8 +263,24 @@ export class SignatureService {
         `Iniciando proceso de firma con certificado: ${certFile}`,
       );
 
+      // FIX RED TEAM: Validar path traversal — prevenir acceso a archivos fuera del directorio de certificados
+      if (!certFile || certFile.includes('..') || certFile.includes('/') || certFile.includes('\\')) {
+        throw new BadRequestException(
+          'Nombre de certificado inválido: contiene caracteres no permitidos',
+        );
+      }
+
       // Verify certificate exists
       const certPath = join(this.certsDir, certFile);
+      const resolvedCertPath = resolve(certPath);
+      const resolvedCertsDir = resolve(this.certsDir);
+
+      if (!resolvedCertPath.startsWith(resolvedCertsDir + '/') && resolvedCertPath !== resolvedCertsDir) {
+        throw new BadRequestException(
+          'Nombre de certificado inválido: ruta fuera del directorio permitido',
+        );
+      }
+
       if (!existsSync(certPath)) {
         throw new Error(
           `El certificado ${certFile} no existe en el directorio de certificados`,

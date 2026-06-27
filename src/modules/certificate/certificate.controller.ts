@@ -10,6 +10,7 @@ import {
   UploadedFile,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -40,7 +41,7 @@ import { EncryptionService } from '../../common/services/encryption.service';
 import { XmlSignerService } from '../sri/services/xml-signer.service';
 import { EmisoresService } from '../emisores/emisores.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtPayload } from '../auth/dto/auth.dto';
+import { JwtPayload, UserRole } from '../auth/dto/auth.dto';
 
 @ApiTags('Certificates')
 @ApiBearerAuth('JWT')
@@ -98,7 +99,10 @@ export class CertificateController {
   @ApiParam({ name: 'fileName', description: 'Nombre del archivo .p12' })
   @ApiResponse({ status: 200, description: 'Certificado eliminado' })
   @ApiResponse({ status: 404, description: 'Certificado no encontrado' })
-  async deleteCertificate(@Param('fileName') fileName: string) {
+  async deleteCertificate(
+    @Param('fileName') fileName: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
     if (!fileName || !fileName.toLowerCase().endsWith('.p12')) {
       throw new BadRequestException(
         'Nombre de archivo inválido. Debe tener extensión .p12',
@@ -107,6 +111,22 @@ export class CertificateController {
 
     if (!this.certificateService.certificateExists(fileName)) {
       throw new NotFoundException(`El certificado ${fileName} no existe`);
+    }
+
+    // FIX RED TEAM: Validar tenant ownership antes de eliminar
+    // Solo SUPERADMIN puede eliminar certificados de otros tenants
+    if (user.rol !== UserRole.SUPERADMIN) {
+      const emisorCheck = await this.db.queryOne<any>(
+        `SELECT e.id FROM emisores e
+         JOIN tenants t ON e.tenant_id = t.id
+         WHERE e.certificado_nombre = $1 AND e.tenant_id = $2`,
+        [fileName, user.tenantId],
+      );
+      if (!emisorCheck) {
+        throw new ForbiddenException(
+          'No tiene permiso para eliminar este certificado',
+        );
+      }
     }
 
     // Limpiar datos del certificado en la tabla emisores
